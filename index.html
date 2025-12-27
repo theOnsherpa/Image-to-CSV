@@ -1,0 +1,42 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>JPG → CSV</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 720px; margin: 40px auto; padding: 0 16px; }
+    .card { padding: 16px; border: 1px solid #ccc; border-radius: 12px; }
+    label { display:block; margin: 12px 0 6px; }
+    input, button { font-size: 16px; }
+    #status { margin-top: 12px; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <h1>JPG → CSV</h1>
+  <div class="card">
+    <p>Select an image. This runs entirely in your browser (nothing uploads).</p>
+
+    <label>Image file (JPG/PNG)</label>
+    <input id="file" type="file" accept="image/*" />
+
+    <label>Downsample width (pixels)</label>
+    <input id="w" type="number" value="64" min="1" />
+
+    <label>Output mode</label>
+    <select id="mode">
+      <option value="gray">Grayscale (0–255)</option>
+      <option value="rgb">RGB triplets (r g b)</option>
+    </select>
+
+    <div style="margin-top:12px;">
+      <button id="go" disabled>Convert to CSV</button>
+    </div>
+
+    <div id="status"></div>
+  </div>
+
+  <canvas id="c" style="display:none;"></canvas>
+  <script src="app.js"></script>
+</body>
+</html>
