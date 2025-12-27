@@ -9,9 +9,9 @@ const hInput = document.getElementById("h");
 const linkBtn = document.getElementById("link");
 
 let isLinked = true;
-let aspect = null; // height / width of the selected image
+let aspect = null; // height / width of selected image
 let suppressSync = false;
-let lastEdited = "w"; // "w" or "h"  <-- this makes "last edited wins"
+let lastEdited = "w"; // "w" or "h" (last edited wins)
 
 function setLinkUI() {
   linkBtn.setAttribute("aria-pressed", String(isLinked));
@@ -45,7 +45,6 @@ function syncFromLastEdited() {
 linkBtn.addEventListener("click", () => {
   isLinked = !isLinked;
   setLinkUI();
-  // When relocking, update the *other* field based on the last thing they edited
   if (isLinked && aspect) syncFromLastEdited();
 });
 
@@ -73,7 +72,6 @@ fileInput.addEventListener("change", async () => {
     const img = await fileToImage(file);
     aspect = img.height / img.width;
 
-    // If linked, sync using "last edited wins" (usually width, unless they last touched height)
     if (isLinked) syncFromLastEdited();
 
     statusEl.textContent = "Ready.";
@@ -87,9 +85,6 @@ btn.addEventListener("click", async () => {
   const file = fileInput.files?.[0];
   if (!file) return;
 
-  const mode = document.getElementById("mode").value;
-
-  // Load image (also ensures aspect exists)
   statusEl.textContent = "Loading image…";
   const img = await fileToImage(file);
   if (!aspect) aspect = img.height / img.width;
@@ -97,7 +92,7 @@ btn.addEventListener("click", async () => {
   let outW = Math.max(1, parseInt(wInput.value || "64", 10));
   let outH = Math.max(1, parseInt(hInput.value || "64", 10));
 
-  // If linked, enforce ratio based on whichever field was edited last
+  // If linked, enforce ratio based on last edited field
   if (isLinked && aspect) {
     if (lastEdited === "h") {
       outW = Math.max(1, Math.round(outH / aspect));
@@ -121,11 +116,10 @@ btn.addEventListener("click", async () => {
   statusEl.textContent = `Converting… (${outW}×${outH})`;
 
   const imageData = ctx.getImageData(0, 0, outW, outH);
-  const csv = imageDataToCsv(imageData, mode);
+  const csv = imageDataToGrayCsv(imageData);
 
   const outName =
-    (file.name.replace(/\.[^.]+$/, "") || "image") +
-    `_${mode}_${outW}x${outH}.csv`;
+    (file.name.replace(/\.[^.]+$/, "") || "image") + `_${outW}x${outH}.csv`;
 
   downloadText(csv, outName);
   statusEl.textContent = `Done. Downloaded: ${outName}`;
@@ -144,7 +138,7 @@ function fileToImage(file) {
   });
 }
 
-function imageDataToCsv(imageData, mode) {
+function imageDataToGrayCsv(imageData) {
   const { data, width, height } = imageData;
 
   const lines = [];
@@ -156,12 +150,9 @@ function imageDataToCsv(imageData, mode) {
       const g = data[i + 1];
       const b = data[i + 2];
 
-      if (mode === "rgb") {
-        row.push(`"${r} ${g} ${b}"`);
-      } else {
-        const gray = Math.round(0.2126 * r + 0.7152 * g + 0.0722 * b);
-        row.push(String(gray));
-      }
+      // grayscale 0–255 (luma-ish)
+      const gray = Math.round(0.2126 * r + 0.7152 * g + 0.0722 * b);
+      row.push(String(gray));
     }
     lines.push(row.join(","));
   }
