@@ -62,4 +62,119 @@ hInput.addEventListener("input", () => {
 });
 
 fileInput.addEventListener("change", async () => {
-  btn.disa
+  btn.disabled = !fileInput.files?.length;
+  aspect = null;
+
+  const file = fileInput.files?.[0];
+  if (!file) return;
+
+  statusEl.textContent = "Reading image…";
+  try {
+    const img = await fileToImage(file);
+    aspect = img.height / img.width;
+
+    // If linked, sync using "last edited wins" (usually width, unless they last touched height)
+    if (isLinked) syncFromLastEdited();
+
+    statusEl.textContent = "Ready.";
+  } catch (e) {
+    statusEl.textContent = "Could not read that image file.";
+    console.error(e);
+  }
+});
+
+btn.addEventListener("click", async () => {
+  const file = fileInput.files?.[0];
+  if (!file) return;
+
+  const mode = document.getElementById("mode").value;
+
+  // Load image (also ensures aspect exists)
+  statusEl.textContent = "Loading image…";
+  const img = await fileToImage(file);
+  if (!aspect) aspect = img.height / img.width;
+
+  let outW = Math.max(1, parseInt(wInput.value || "64", 10));
+  let outH = Math.max(1, parseInt(hInput.value || "64", 10));
+
+  // If linked, enforce ratio based on whichever field was edited last
+  if (isLinked && aspect) {
+    if (lastEdited === "h") {
+      outW = Math.max(1, Math.round(outH / aspect));
+      suppressSync = true;
+      wInput.value = String(outW);
+      suppressSync = false;
+    } else {
+      outH = Math.max(1, Math.round(outW * aspect));
+      suppressSync = true;
+      hInput.value = String(outH);
+      suppressSync = false;
+    }
+  }
+
+  canvas.width = outW;
+  canvas.height = outH;
+
+  ctx.clearRect(0, 0, outW, outH);
+  ctx.drawImage(img, 0, 0, outW, outH);
+
+  statusEl.textContent = `Converting… (${outW}×${outH})`;
+
+  const imageData = ctx.getImageData(0, 0, outW, outH);
+  const csv = imageDataToCsv(imageData, mode);
+
+  const outName =
+    (file.name.replace(/\.[^.]+$/, "") || "image") +
+    `_${mode}_${outW}x${outH}.csv`;
+
+  downloadText(csv, outName);
+  statusEl.textContent = `Done. Downloaded: ${outName}`;
+});
+
+function fileToImage(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve(img);
+    };
+    img.onerror = reject;
+    img.src = url;
+  });
+}
+
+function imageDataToCsv(imageData, mode) {
+  const { data, width, height } = imageData;
+
+  const lines = [];
+  for (let y = 0; y < height; y++) {
+    const row = [];
+    for (let x = 0; x < width; x++) {
+      const i = (y * width + x) * 4;
+      const r = data[i + 0];
+      const g = data[i + 1];
+      const b = data[i + 2];
+
+      if (mode === "rgb") {
+        row.push(`"${r} ${g} ${b}"`);
+      } else {
+        const gray = Math.round(0.2126 * r + 0.7152 * g + 0.0722 * b);
+        row.push(String(gray));
+      }
+    }
+    lines.push(row.join(","));
+  }
+  return lines.join("\n");
+}
+
+function downloadText(text, filename) {
+  const blob = new Blob([text], { type: "text/csv;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
