@@ -20,8 +20,27 @@
     <label>Image file (JPG/PNG)</label>
     <input id="file" type="file" accept="image/*" />
 
-    <label>Downsample width (pixels)</label>
-    <input id="w" type="number" value="64" min="1" />
+   <label>Output size (pixels)</label>
+<div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+  <div>
+    <div style="font-size:12px; opacity:0.8;">W</div>
+    <input id="w" type="number" value="64" min="1" style="width:110px;" />
+  </div>
+
+  <button
+    id="link"
+    type="button"
+    aria-pressed="true"
+    title="Lock/unlock aspect ratio"
+    style="height:38px; width:42px; border-radius:10px; border:1px solid #ccc; background:transparent; cursor:pointer;"
+  >🔗</button>
+
+  <div>
+    <div style="font-size:12px; opacity:0.8;">H</div>
+    <input id="h" type="number" value="64" min="1" style="width:110px;" />
+  </div>
+</div>
+
 
     <label>Output mode</label>
     <select id="mode">
